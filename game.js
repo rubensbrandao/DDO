@@ -1,390 +1,468 @@
 
-const canvas = document.getElementById("game");
+const canvas = document.getElementById("office");
 const ctx = canvas.getContext("2d");
+const panel = document.getElementById("panelContent");
+const sceneWrap = document.getElementById("sceneWrap");
 
-const world = { width: 1500, height: 1000 };
+const W = 960;
+const H = 640;
 
-let camera = { x: 0, y: 0, zoom: 1 };
-let paused = false;
-let selected = null;
-let tick = 0;
+let zoom = 1;
+let hovered = null;
+let hotspots = [];
 
-const buildings = [
-    {
-        name: "DAUNS",
-        x: 590, y: 320,
-        w: 250, h: 180,
-        color: "#e9b65e",
-        roof: "#b85d48",
-        type: "Restaurante"
-    },
-    {
-        name: "MERCADO",
-        x: 1000, y: 170,
-        w: 260, h: 190,
-        color: "#d8d9a0",
-        roof: "#668c72",
-        type: "Supermercado"
-    },
-    {
-        name: "ESCRITÓRIO DDO",
-        x: 170, y: 170,
-        w: 270, h: 190,
-        color: "#b8c9d9",
-        roof: "#647c9b",
-        type: "Escritório"
-    },
-    {
-        name: "CAFÉ",
-        x: 1030, y: 620,
-        w: 210, h: 155,
-        color: "#d6a68d",
-        roof: "#946b55",
-        type: "Comércio"
-    }
+const departments = [
+  {
+    name: "Gerência Geral",
+    employee: "Cláudio",
+    role: "Gerente geral",
+    color: "#d5a66b",
+    floor: "#a77c58",
+    wall: "#596b78",
+    description: "Coordenação geral da operação Dauns.",
+    objects: [
+      ["Computador", "Painel geral", "Acompanhe os indicadores e a situação de todos os departamentos."],
+      ["Pasta", "Tarefas e pendências", "Consulte as atividades que precisam de atenção."],
+      ["Arquivo", "Documentos e relatórios", "Acesse relatórios, documentos e históricos da operação."],
+      ["Funcionário", "Conversar com Cláudio", "Converse com o gerente geral e solicite análises ou ações."]
+    ]
+  },
+  {
+    name: "Marketing",
+    employee: "Lucas",
+    role: "Marketing",
+    color: "#6ca7c9",
+    floor: "#8b705b",
+    wall: "#496b7c",
+    description: "Estratégias, campanhas e planejamento.",
+    objects: [
+      ["Computador", "Planejamento de marketing", "Organize estratégias e campanhas da Dauns."],
+      ["Pasta", "Campanhas", "Consulte campanhas em andamento e ideias de divulgação."],
+      ["Quadro", "Calendário", "Veja datas comemorativas e oportunidades."],
+      ["Funcionário", "Conversar com Lucas", "Converse sobre estratégias, campanhas e resultados."]
+    ]
+  },
+  {
+    name: "Design e Criação",
+    employee: "Designer",
+    role: "Criação visual",
+    color: "#bd8bd0",
+    floor: "#90765e",
+    wall: "#705c82",
+    description: "Produção de materiais e identidade visual.",
+    objects: [
+      ["Computador", "Estúdio de criação", "Acesse os materiais gráficos e projetos visuais."],
+      ["Mesa", "Área de criação", "Espaço de trabalho para desenvolver novas artes."],
+      ["Arquivo", "Biblioteca de artes", "Consulte materiais, modelos e referências."],
+      ["Funcionário", "Conversar com Designer", "Converse sobre peças gráficas e materiais."]
+    ]
+  },
+  {
+    name: "Redes Sociais",
+    employee: "Social Media",
+    role: "Publicações e canais",
+    color: "#72b89a",
+    floor: "#9b795b",
+    wall: "#4c7668",
+    description: "Gestão de canais e publicações.",
+    objects: [
+      ["Computador", "Central de publicações", "Organize e acompanhe as publicações."],
+      ["Celular", "Redes sociais", "Acesse os canais sociais conectados."],
+      ["Quadro", "Desempenho", "Acompanhe métricas e resultados das redes."],
+      ["Funcionário", "Conversar com Social Media", "Converse sobre publicações e desempenho."]
+    ]
+  },
+  {
+    name: "Atendimento",
+    employee: "Atendente",
+    role: "Relacionamento",
+    color: "#d6a56e",
+    floor: "#9b7659",
+    wall: "#77624d",
+    description: "Atendimento e relacionamento com clientes.",
+    objects: [
+      ["Computador", "Central de atendimento", "Acompanhe conversas e solicitações."],
+      ["Telefone", "WhatsApp", "Acesse a central de mensagens."],
+      ["Arquivo", "Histórico de clientes", "Consulte registros e históricos de atendimento."],
+      ["Funcionário", "Conversar com atendente", "Converse sobre atendimentos e solicitações."]
+    ]
+  },
+  {
+    name: "Inteligência e Relatórios",
+    employee: "Analista",
+    role: "Dados e inteligência",
+    color: "#83a9d5",
+    floor: "#8c795f",
+    wall: "#526b88",
+    description: "Análise de dados e indicadores.",
+    objects: [
+      ["Computador", "Painel de indicadores", "Consulte indicadores, vendas e comparativos."],
+      ["Gráficos", "Resultados", "Visualize os resultados da operação."],
+      ["Arquivo", "Base de informações", "Consulte pesquisas e históricos."],
+      ["Funcionário", "Conversar com analista", "Converse sobre análises e oportunidades."]
+    ]
+  }
 ];
 
-const names = [
-    "Mauro", "Ana", "Rafael", "Bia",
-    "João", "Lia", "Caio", "Nina",
-    "Pedro", "Luna", "Davi", "Cris",
-    "Ivo", "Mila", "Theo", "Lara"
+const roomPositions = [
+  [12, 12], [332, 12], [652, 12],
+  [12, 328], [332, 328], [652, 328]
 ];
-
-const orders = [
-    "Pedi três pastéis de frango e duas Coca-Colas. Estava uma delícia!",
-    "Passei rapidinho e comprei dois pastéis de queijo.",
-    "O pastel estava quentinho. Gostei bastante!",
-    "Hoje escolhi um lanche em vez de pastel.",
-    "Almocei por aqui. A comida estava boa."
-];
-
-const people = names.map((name, i) => {
-    const x = 430 + Math.random() * 580;
-    const y = 500 + Math.random() * 300;
-
-    return {
-        id: i,
-        name,
-        x, y,
-        tx: x,
-        ty: y,
-        speed: 0.4 + Math.random() * 0.5,
-        shirt: ["#d96c5f", "#547b9b", "#e2b64f", "#6f9872"][i % 4],
-        skin: ["#e8b98e", "#9d6748", "#f0c9a2"][i % 3],
-        hair: ["#4a3028", "#29252a", "#79533b"][i % 3],
-        customer: i % 4 !== 0,
-        order: orders[i % orders.length]
-    };
-});
-
-function resize() {
-    const rect = canvas.parentElement.getBoundingClientRect();
-
-    canvas.width = rect.width * devicePixelRatio;
-    canvas.height = rect.height * devicePixelRatio;
-
-    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-
-    if (!camera.initialized) {
-        camera.x = (rect.width - world.width) / 2;
-        camera.y = (rect.height - world.height) / 2;
-        camera.initialized = true;
-    }
-
-    draw();
-}
-
-window.addEventListener("resize", resize);
 
 function rect(x, y, w, h, color) {
-    ctx.fillStyle = color;
-    ctx.fillRect(Math.round(x), Math.round(y), w, h);
+  ctx.fillStyle = color;
+  ctx.fillRect(x, y, w, h);
 }
 
-function drawTree(x, y) {
-    rect(x - 5, y + 12, 10, 17, "#76543b");
-    rect(x - 16, y - 4, 32, 22, "#397b54");
-    rect(x - 11, y - 13, 22, 15, "#4c9462");
-    rect(x - 3, y - 17, 7, 7, "#68a875");
+function pixelText(text, x, y, size = 9, color = "#fff") {
+  ctx.fillStyle = color;
+  ctx.font = `bold ${size}px monospace`;
+  ctx.fillText(text, x, y);
 }
 
-function drawBuilding(b) {
-    rect(b.x + 8, b.y + 10, b.w, b.h, "#00000022");
-    rect(b.x, b.y, b.w, b.h, b.color);
-    rect(b.x - 7, b.y - 14, b.w + 14, 30, b.roof);
+function drawFloor(x, y, d) {
+  // Piso em perspectiva isométrica simplificada
+  ctx.fillStyle = d.floor;
+  ctx.beginPath();
+  ctx.moveTo(x + 10, y + 65);
+  ctx.lineTo(x + 292, y + 65);
+  ctx.lineTo(x + 305, y + 260);
+  ctx.lineTo(x, y + 260);
+  ctx.closePath();
+  ctx.fill();
 
-    for (let i = 0; i < Math.floor(b.w / 62); i++) {
-        rect(b.x + 18 + i * 62, b.y + 38, 39, 34, "#86b7c3");
-        rect(b.x + 35 + i * 62, b.y + 38, 4, 34, "#e9e5d5");
+  // Linhas de piso
+  ctx.strokeStyle = "rgba(30,25,20,.18)";
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 5; i++) {
+    ctx.beginPath();
+    ctx.moveTo(x + 12, y + 105 + i * 32);
+    ctx.lineTo(x + 296, y + 105 + i * 32);
+    ctx.stroke();
+  }
+}
+
+function drawWalls(x, y, d) {
+  rect(x + 10, y + 10, 282, 65, d.wall);
+  rect(x + 10, y + 10, 8, 55, "#273743");
+  rect(x + 284, y + 10, 8, 55, "#273743");
+
+  // Faixa superior
+  rect(x + 10, y + 10, 282, 7, "#d6c7a4");
+  rect(x + 18, y + 66, 266, 5, "rgba(0,0,0,.2)");
+
+  // Janela
+  rect(x + 205, y + 25, 55, 30, "#243d50");
+  rect(x + 210, y + 29, 45, 22, "#9ac8cf");
+  rect(x + 231, y + 29, 3, 22, "#526b78");
+  rect(x + 210, y + 39, 45, 2, "#526b78");
+}
+
+function drawDesk(x, y, color) {
+  // Mesa
+  rect(x, y, 75, 8, "#49352b");
+  rect(x + 5, y + 8, 5, 23, "#382b25");
+  rect(x + 65, y + 8, 5, 23, "#382b25");
+  rect(x + 7, y - 4, 62, 5, color);
+
+  // Monitor
+  rect(x + 23, y - 25, 30, 19, "#202c35");
+  rect(x + 26, y - 22, 24, 13, "#70b6b1");
+  rect(x + 36, y - 6, 5, 6, "#29333b");
+  rect(x + 31, y, 15, 3, "#29333b");
+
+  // Teclado
+  rect(x + 15, y + 3, 22, 3, "#d0d0c3");
+}
+
+function drawFilingCabinet(x, y) {
+  rect(x, y, 35, 48, "#59636b");
+  rect(x + 3, y + 4, 29, 12, "#89959b");
+  rect(x + 3, y + 19, 29, 12, "#89959b");
+  rect(x + 3, y + 34, 29, 10, "#89959b");
+  rect(x + 15, y + 9, 5, 2, "#34404a");
+  rect(x + 15, y + 24, 5, 2, "#34404a");
+  rect(x + 15, y + 38, 5, 2, "#34404a");
+}
+
+function drawFolder(x, y) {
+  rect(x, y + 4, 25, 17, "#e6bd5b");
+  rect(x + 2, y, 10, 5, "#f0d47c");
+  rect(x + 4, y + 8, 17, 2, "#b58b3f");
+}
+
+function drawBoard(x, y, color) {
+  rect(x, y, 57, 35, "#453a32");
+  rect(x + 3, y + 3, 51, 29, "#e4dfc6");
+  rect(x + 8, y + 9, 18, 3, color);
+  rect(x + 8, y + 16, 35, 2, "#89928b");
+  rect(x + 8, y + 23, 26, 2, "#89928b");
+}
+
+function drawPhone(x, y) {
+  rect(x, y, 12, 22, "#242b34");
+  rect(x + 2, y + 3, 8, 14, "#7fc7bb");
+  rect(x + 5, y + 19, 3, 1, "#eee");
+}
+
+function drawPerson(x, y, d) {
+  // Sombra
+  rect(x - 8, y + 30, 24, 5, "rgba(0,0,0,.22)");
+
+  // Pernas
+  rect(x - 5, y + 19, 7, 13, "#263b55");
+  rect(x + 4, y + 19, 7, 13, "#263b55");
+  rect(x - 7, y + 29, 9, 4, "#29252a");
+  rect(x + 4, y + 29, 9, 4, "#29252a");
+
+  // Corpo
+  rect(x - 8, y + 5, 24, 17, d.color);
+  rect(x - 11, y + 8, 4, 12, d.color);
+  rect(x + 16, y + 8, 4, 12, d.color);
+
+  // Cabeça
+  rect(x - 5, y - 9, 17, 15, "#e7b78c");
+  rect(x - 6, y - 12, 19, 6, "#49352d");
+  rect(x - 2, y - 1, 3, 3, "#3b302c");
+  rect(x + 7, y - 1, 3, 3, "#3b302c");
+}
+
+function addHotspot(x, y, w, h, dept, object, title, description) {
+  hotspots.push({
+    x, y, w, h,
+    dept,
+    object,
+    title,
+    description
+  });
+}
+
+function drawRoom(index) {
+  const d = departments[index];
+  const [x, y] = roomPositions[index];
+
+  // Sombra e base
+  rect(x + 5, y + 258, 300, 7, "rgba(0,0,0,.25)");
+
+  // Parede e piso
+  drawFloor(x, y, d);
+  drawWalls(x, y, d);
+
+  // Placa do departamento
+  rect(x + 25, y + 24, 135, 25, "#25313c");
+  pixelText(d.name.toUpperCase(), x + 32, y + 40, 9, "#f4f0dc");
+
+  // Computador / mesa
+  drawDesk(x + 48, y + 150, d.color);
+  addHotspot(x + 65, y + 118, 72, 55, d.name, "Computador",
+    d.objects[0][1], d.objects[0][2]);
+
+  // Arquivo
+  drawFilingCabinet(x + 244, y + 90);
+  addHotspot(x + 240, y + 88, 43, 53, d.name, "Arquivo",
+    d.objects[2][1], d.objects[2][2]);
+
+  // Pasta sobre a mesa
+  drawFolder(x + 140, y + 157);
+  addHotspot(x + 135, y + 150, 37, 32, d.name, "Pasta",
+    d.objects[1][1], d.objects[1][2]);
+
+  // Elemento especial de cada departamento
+  if (index === 3) {
+    drawPhone(x + 185, y + 153);
+    addHotspot(x + 180, y + 145, 25, 36, d.name, "Celular",
+      "Redes sociais", "Acesse os canais sociais conectados.");
+  } else if (index === 4) {
+    drawPhone(x + 185, y + 153);
+    addHotspot(x + 180, y + 145, 25, 36, d.name, "Telefone",
+      "WhatsApp", "Acesse a central de mensagens.");
+  } else {
+    drawBoard(x + 180, y + 85, d.color);
+    addHotspot(x + 177, y + 82, 65, 43, d.name, "Quadro",
+      d.objects[2][1], d.objects[2][2]);
+  }
+
+  // Funcionário
+  drawPerson(x + 190, y + 192, d);
+  pixelText(d.employee, x + 165, y + 237, 9, "#fff");
+  addHotspot(x + 170, y + 175, 45, 65, d.name, "Funcionário",
+    d.objects[3][1], d.objects[3][2]);
+
+  // Borda da sala
+  ctx.strokeStyle = "#d3c3a2";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(x + 8, y + 8, 286, 253);
+
+  // Destaque da sala
+  if (hovered && hovered.dept === d.name) {
+    ctx.strokeStyle = "#9bf0c0";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x + 5, y + 5, 292, 259);
+  }
+
+  // Identificação
+  rect(x + 12, y + 267, 285, 27, "#202b35");
+  pixelText(`${index + 1}. ${d.name}`, x + 22, y + 284, 11, "#e8eee9");
+}
+
+function drawScene() {
+  ctx.clearRect(0, 0, W, H);
+  hotspots = [];
+
+  // Fundo
+  rect(0, 0, W, H, "#27343a");
+
+  // Piso geral
+  for (let y = 0; y < H; y += 24) {
+    for (let x = 0; x < W; x += 24) {
+      if ((x / 24 + y / 24) % 2 === 0) {
+        rect(x, y, 24, 24, "rgba(255,255,255,.018)");
+      }
     }
+  }
 
-    rect(b.x + b.w / 2 - 19, b.y + b.h - 55, 38, 55, "#765747");
+  departments.forEach((_, i) => drawRoom(i));
 
-    rect(b.x + 18, b.y + b.h - 92, b.w - 36, 19, b.roof);
+  // Tooltip do objeto em foco
+  if (hovered) {
+    const label = hovered.object;
+    const tw = Math.max(75, label.length * 7 + 18);
+    const tx = Math.min(hovered.x, W - tw - 8);
+    const ty = Math.max(hovered.y - 24, 5);
 
-    ctx.fillStyle = "#283449";
-    ctx.font = "bold 15px monospace";
-    ctx.textAlign = "center";
-    ctx.fillText(b.name, b.x + b.w / 2, b.y + b.h + 25);
+    rect(tx, ty, tw, 19, "#14251f");
+    ctx.strokeStyle = "#8ee5b7";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(tx, ty, tw, 19);
+    pixelText(label, tx + 8, ty + 13, 9, "#b8f3d0");
+  }
 }
 
-function drawPerson(p) {
-    const x = Math.round(p.x);
-    const y = Math.round(p.y + Math.sin(tick * 0.08 + p.id) * 2);
+function openObject(item) {
+  const d = departments.find(dep => dep.name === item.dept);
 
-    rect(x - 8, y + 15, 17, 4, "#263c3444");
+  panel.innerHTML = `
+    <span class="panel-tag">${item.dept.toUpperCase()}</span>
+    <h2>${item.title}</h2>
+    <p>${item.description}</p>
+    <div class="info-row">
+      <span>Departamento</span>
+      <strong>${item.dept}</strong>
+    </div>
+    <div class="info-row">
+      <span>Objeto</span>
+      <strong>${item.object}</strong>
+    </div>
+    <button class="panel-action" id="panelAction">
+      Abrir ${item.object.toLowerCase()}
+    </button>
+    <div class="tip">
+      <strong>Protótipo DDO</strong>
+      Esta área será conectada às ferramentas e aos dados reais do departamento.
+    </div>
+  `;
 
-    // Pernas
-    rect(x - 6, y + 6, 5, 10, "#34465b");
-    rect(x + 2, y + 6, 5, 10, "#34465b");
-
-    // Corpo
-    rect(x - 8, y - 7, 17, 15, p.shirt);
-    rect(x - 10, y - 4, 3, 9, p.skin);
-    rect(x + 9, y - 4, 3, 9, p.skin);
-
-    // Cabeça
-    rect(x - 6, y - 19, 13, 13, p.skin);
-    rect(x - 7, y - 21, 14, 5, p.hair);
-    rect(x - 7, y - 17, 3, 5, p.hair);
-    rect(x + 2, y - 13, 2, 2, "#273044");
-
-    if (selected && selected.id === p.id) {
-        ctx.strokeStyle = "white";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x - 13, y - 25, 27, 45);
-    }
-}
-
-function draw() {
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-
-    ctx.clearRect(0, 0, width, height);
-
-    ctx.save();
-
-    ctx.translate(camera.x, camera.y);
-    ctx.scale(camera.zoom, camera.zoom);
-
-    // Terreno
-    rect(0, 0, world.width, world.height, "#91b99a");
-
-    // Ruas
-    rect(0, 390, world.width, 160, "#777e7c");
-    rect(500, 0, 100, world.height, "#777e7c");
-
-    // Faixas
-    for (let x = 20; x < world.width; x += 95) {
-        rect(x, 466, 48, 5, "#e8dfb8");
-    }
-
-    for (let y = 20; y < world.height; y += 95) {
-        rect(545, y, 5, 45, "#e8dfb8");
-    }
-
-    // Calçadas
-    rect(0, 365, world.width, 25, "#c9c1a9");
-    rect(0, 550, world.width, 25, "#c9c1a9");
-
-    // Árvores
-    [
-        [80, 300], [460, 300], [920, 300],
-        [1320, 330], [300, 650], [920, 850]
-    ].forEach(p => drawTree(...p));
-
-    // Prédios
-    buildings.forEach(drawBuilding);
-
-    // Pessoas
-    people.forEach(drawPerson);
-
-    ctx.restore();
-}
-
-function newDestination(p) {
-    const b = buildings[Math.floor(Math.random() * buildings.length)];
-
-    if (Math.random() < 0.4) {
-        p.tx = b.x + b.w / 2;
-        p.ty = b.y + b.h + 25;
-    } else {
-        p.tx = 100 + Math.random() * 1250;
-        p.ty = 580 + Math.random() * 330;
-    }
-}
-
-function updatePeople() {
-    people.forEach(p => {
-        const dx = p.tx - p.x;
-        const dy = p.ty - p.y;
-        const distance = Math.hypot(dx, dy);
-
-        if (distance < 3) {
-            newDestination(p);
-        } else {
-            p.x += dx / distance * p.speed;
-            p.y += dy / distance * p.speed;
-        }
-    });
-}
-
-function worldPosition(e) {
-    const r = canvas.getBoundingClientRect();
-
-    return {
-        x: (e.clientX - r.left - camera.x) / camera.zoom,
-        y: (e.clientY - r.top - camera.y) / camera.zoom
-    };
-}
-
-function showPerson(p) {
-    document.getElementById("sideTitle").textContent = p.name;
-
-    document.getElementById("sideSub").textContent =
-        p.customer ? "Cliente fictício" : "Visitante fictício";
-
-    document.getElementById("details").innerHTML = `
-        <h3>${p.customer ? "Cliente da Dauns" : "Visitante da cidade"}</h3>
-        <p><b>Pedido:</b> ${p.customer ? p.order : "Nenhum pedido associado."}</p>
-        <p>“${p.customer ? p.order : "Estou passeando pela cidade!"}”</p>
-        <button onclick="alert('Conversa demonstrativa com ${p.name}')">
-            Conversar
-        </button>
+  document.getElementById("panelAction").addEventListener("click", () => {
+    panel.innerHTML = `
+      <span class="panel-tag">${item.dept.toUpperCase()}</span>
+      <h2>${item.title}</h2>
+      <p>Você abriu esta área do protótipo.</p>
+      <div class="tip">
+        <strong>Próxima etapa</strong>
+        Aqui será implementada a ferramenta real: dados, documentos, tarefas ou conversa com o funcionário.
+      </div>
+      <button class="panel-action" id="backAction">Voltar</button>
     `;
+    document.getElementById("backAction").addEventListener("click", () => openObject(item));
+  });
 }
 
-function showBuilding(b) {
-    document.getElementById("sideTitle").textContent = b.name;
-    document.getElementById("sideSub").textContent = b.type;
+function openEmployee(item) {
+  const d = departments.find(dep => dep.name === item.dept);
 
-    document.getElementById("details").innerHTML = `
-        <h3>${b.name}</h3>
-        <p>${b.id === "dauns"
-            ? "200 pastéis vendidos hoje (demonstração)."
-            : "Estabelecimento da cidade virtual."}</p>
-        <button onclick="alert('Abrindo painel de ${b.name}')">
-            Entrar no estabelecimento
-        </button>
+  panel.innerHTML = `
+    <span class="panel-tag">${d.role.toUpperCase()}</span>
+    <h2>${d.employee}</h2>
+    <p>Olá! Sou ${d.employee}, responsável por ${d.name.toLowerCase()}.</p>
+    <div class="tip">
+      <strong>Conversa demonstrativa</strong>
+      Em uma próxima etapa, este espaço será conectado ao assistente de IA do funcionário.
+    </div>
+    <button class="panel-action" id="talkButton">Iniciar conversa</button>
+  `;
+
+  document.getElementById("talkButton").addEventListener("click", () => {
+    panel.innerHTML = `
+      <span class="panel-tag">CONVERSA</span>
+      <h2>${d.employee}</h2>
+      <p>Este é o espaço de conversa com o funcionário virtual.</p>
+      <div class="tip">
+        <strong>${d.employee}</strong>
+        Olá! Como posso ajudar com ${d.name.toLowerCase()}?
+      </div>
+      <p>A integração com IA será adicionada posteriormente.</p>
     `;
+  });
 }
 
-function selectAt(pos) {
-    for (const p of people) {
-        if (Math.abs(pos.x - p.x) < 17 &&
-            Math.abs(pos.y - (p.y - 5)) < 25) {
-            selected = p;
-            showPerson(p);
-            return;
-        }
-    }
-
-    for (const b of buildings) {
-        if (pos.x >= b.x - 8 &&
-            pos.x <= b.x + b.w + 8 &&
-            pos.y >= b.y - 20 &&
-            pos.y <= b.y + b.h + 40) {
-            selected = b;
-            showBuilding(b);
-            return;
-        }
-    }
-
-    selected = null;
-    document.getElementById("sideTitle").textContent = "Visão da cidade";
-    document.getElementById("sideSub").textContent = "Explore a cidade virtual.";
+function pointerPosition(event) {
+  const r = canvas.getBoundingClientRect();
+  return {
+    x: (event.clientX - r.left) * W / r.width,
+    y: (event.clientY - r.top) * H / r.height
+  };
 }
 
-let dragging = null;
+canvas.addEventListener("mousemove", event => {
+  const p = pointerPosition(event);
 
-canvas.addEventListener("pointerdown", e => {
-    canvas.setPointerCapture(e.pointerId);
+  hovered = [...hotspots].reverse().find(h =>
+    p.x >= h.x && p.x <= h.x + h.w &&
+    p.y >= h.y && p.y <= h.y + h.h
+  ) || null;
 
-    dragging = {
-        x: e.clientX,
-        y: e.clientY,
-        cx: camera.x,
-        cy: camera.y,
-        moved: false
-    };
+  canvas.style.cursor = hovered ? "pointer" : "default";
+  drawScene();
 });
 
-canvas.addEventListener("pointermove", e => {
-    if (!dragging) return;
-
-    const dx = e.clientX - dragging.x;
-    const dy = e.clientY - dragging.y;
-
-    if (Math.abs(dx) + Math.abs(dy) > 4) {
-        dragging.moved = true;
-    }
-
-    camera.x = dragging.cx + dx;
-    camera.y = dragging.cy + dy;
-
-    draw();
+canvas.addEventListener("mouseleave", () => {
+  hovered = null;
+  drawScene();
 });
 
-canvas.addEventListener("pointerup", e => {
-    if (!dragging) return;
+canvas.addEventListener("click", event => {
+  const p = pointerPosition(event);
 
-    if (!dragging.moved) {
-        selectAt(worldPosition(e));
-    }
+  const item = [...hotspots].reverse().find(h =>
+    p.x >= h.x && p.x <= h.x + h.w &&
+    p.y >= h.y && p.y <= h.y + h.h
+  );
 
-    dragging = null;
+  if (!item) return;
+
+  if (item.object === "Funcionário") {
+    openEmployee(item);
+  } else {
+    openObject(item);
+  }
 });
 
-function zoom(factor) {
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
+document.getElementById("zoomIn").addEventListener("click", () => {
+  zoom = Math.min(zoom + 0.1, 1.5);
+  canvas.style.width = `${zoom * 100}%`;
+});
 
-    const cx = width / 2;
-    const cy = height / 2;
+document.getElementById("zoomOut").addEventListener("click", () => {
+  zoom = Math.max(zoom - 0.1, 0.7);
+  canvas.style.width = `${zoom * 100}%`;
+});
 
-    const wx = (cx - camera.x) / camera.zoom;
-    const wy = (cy - camera.y) / camera.zoom;
+document.getElementById("closePanel").addEventListener("click", () => {
+  panel.innerHTML = `
+    <div class="welcome-icon">⌖</div>
+    <h2>Bem-vindo ao DDO</h2>
+    <p>Escolha um ambiente ou clique em um objeto para começar.</p>
+  `;
+});
 
-    camera.zoom = Math.max(0.45, Math.min(2.5, camera.zoom * factor));
-
-    camera.x = cx - wx * camera.zoom;
-    camera.y = cy - wy * camera.zoom;
-
-    draw();
-}
-
-canvas.addEventListener("wheel", e => {
-    e.preventDefault();
-    zoom(e.deltaY < 0 ? 1.12 : 0.89);
-}, { passive: false });
-
-document.getElementById("zoomIn").onclick = () => zoom(1.2);
-document.getElementById("zoomOut").onclick = () => zoom(0.83);
-
-document.getElementById("home").onclick = () => {
-    camera.zoom = 1;
-    camera.x = (canvas.clientWidth - world.width) / 2;
-    camera.y = (canvas.clientHeight - world.height) / 2;
-    draw();
-};
-
-document.getElementById("pause").onclick = e => {
-    paused = !paused;
-    e.target.textContent = paused ? "▶ Continuar" : "Ⅱ Pausar";
-};
-
-function loop() {
-    if (!paused) {
-        tick++;
-        updatePeople();
-        draw();
-    }
-
-    requestAnimationFrame(loop);
-}
-
-people.forEach(newDestination);
-
-resize();
-loop();
+drawScene();
