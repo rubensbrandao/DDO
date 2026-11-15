@@ -2,75 +2,71 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DDO - Cidade Virtual</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DDO — Dauns Digital Office</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-
-<header>
+  <header class="topbar">
     <div class="brand">
-        <span class="logo">D</span>
+      <div class="brand-icon">D</div>
+      <div>
+        <strong>DAUNS DIGITAL OFFICE</strong>
+        <small>Central de operações</small>
+      </div>
+    </div>
+    <div class="top-status">
+      <span class="status-dot"></span>
+      ESCRITÓRIO ONLINE
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="workspace">
+      <div class="section-heading">
         <div>
-            <strong>DDO</strong>
-            <small>DAUNS DIGITAL OFFICE</small>
+          <h1>Nosso escritório</h1>
+          <p>Selecione um ambiente ou interaja com os objetos.</p>
         </div>
-    </div>
-
-    <div class="status">
-        <span>● Sistema online</span>
-        <span>BAURU - UNIDADE DEMONSTRATIVA</span>
-    </div>
-</header>
-
-<main>
-
-    <section id="world">
-        <canvas id="game"></canvas>
-
-        <div class="controls">
-            <button id="zoomOut">−</button>
-            <button id="zoomIn">+</button>
-            <button id="home">⌂</button>
-            <button id="pause">Ⅱ Pausar</button>
+        <div class="zoom-controls">
+          <button id="zoomOut" aria-label="Diminuir zoom">−</button>
+          <button id="zoomIn" aria-label="Aumentar zoom">+</button>
         </div>
+      </div>
 
-        <div class="hint">
-            Arraste para movimentar • Scroll para zoom • Clique nas pessoas e lojas
-        </div>
+      <div class="scene-wrap" id="sceneWrap">
+        <canvas id="office" width="960" height="640"></canvas>
+      </div>
+
+      <div class="legend">
+        <span><i class="legend-dot"></i> Objeto interativo</span>
+        <span>Passe o mouse para descobrir</span>
+      </div>
     </section>
 
-    <aside>
-
-        <h2 id="sideTitle">Visão da cidade</h2>
-        <p id="sideSub">Explore a cidade virtual da Dauns.</p>
-
-        <div class="stats">
-            <div><strong>200</strong><small>Pastéis vendidos</small></div>
-            <div><strong>148</strong><small>Visitas simuladas</small></div>
-            <div><strong>R$ 4.860</strong><small>Vendas demonstrativas</small></div>
-            <div><strong id="peopleCount">16</strong><small>Personagens</small></div>
+    <aside class="side-panel" id="sidePanel">
+      <div class="panel-top">
+        <span class="panel-eyebrow">DDO / INTERAÇÃO</span>
+        <button id="closePanel" class="close-btn" aria-label="Fechar">×</button>
+      </div>
+      <div id="panelContent" class="panel-content">
+        <div class="welcome-icon">⌖</div>
+        <h2>Bem-vindo ao DDO</h2>
+        <p>Escolha um escritório e clique em um objeto para começar.</p>
+        <div class="tip">
+          <strong>Dica</strong>
+          Cada objeto representa uma ferramenta, informação ou atividade real do departamento.
         </div>
-
-        <div id="details" class="details">
-            <h3>Bem-vindo à DDO</h3>
-            <p>Explore a cidade, clique nos personagens e descubra o que está acontecendo.</p>
-            <p><small>Todos os dados desta demonstração são fictícios.</small></p>
-        </div>
-
-        <h3>Atividade recente</h3>
-        <div id="log" class="log">
-            <p>09:42 — Movimento registrado na Dauns.</p>
-            <p>09:38 — Pedidos concluídos.</p>
-            <p>09:31 — Lucas preparou uma campanha.</p>
-        </div>
-
+      </div>
     </aside>
+  </main>
 
-</main>
+  <footer>
+    <span>DAUNS DIGITAL OFFICE</span>
+    <span>Protótipo interativo · Dados demonstrativos</span>
+  </footer>
 
-<script src="game.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>
